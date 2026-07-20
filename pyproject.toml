@@ -19,6 +19,12 @@ dev = [
     "pytest-asyncio>=0.23.0"
 ]
 
+[project.scripts]
+oracle-mcp-server = "oracle_mcp_server.server:main"
+
+[tool.setuptools.packages.find]
+include = ["db_context*", "oracle_mcp_server*"]
+
 [tool.ruff]
 select = ["E", "F", "I"]
 line-length = 88
