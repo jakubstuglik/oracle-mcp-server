@@ -455,13 +455,15 @@ async def run_sql_query(
     sql: str,
     ctx: Context,
     max_rows: int = 100,
-    result_format: str = "json",
+    result_format: str = "markdown",
 ) -> str:
     """Generic read-only SELECT executor.
 
     result_format:
-      - "json" (default): structured JSON — SQL NULL as null, columns + row arrays
-      - "markdown": human-readable markdown table (NULL token for SQL nulls)
+      - "markdown" (default): human-readable markdown table (NULL token for SQL nulls)
+      - "json": structured JSON — SQL NULL as null, columns + row arrays
+
+    Prefer result_format="json" for agents (null vs empty vs string \"NULL\" are distinct).
 
     Use: Ad hoc data inspection or metrics not exposed by other tools.
     Compose: Supplement structured metadata tools (e.g. row counts) sparingly.
@@ -469,7 +471,7 @@ async def run_sql_query(
     Prefer narrow projections and max_rows on large tables.
     """
     db_context: DatabaseContext = ctx.request_context.lifespan_context
-    fmt = (result_format or "json").strip().lower()
+    fmt = (result_format or "markdown").strip().lower()
     if fmt not in ("json", "markdown", "md"):
         return wrap_untrusted(
             f"Invalid result_format={result_format!r}; use 'json' or 'markdown'."
