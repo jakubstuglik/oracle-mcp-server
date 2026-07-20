@@ -13,6 +13,7 @@ import oracledb
 from db_context import DatabaseContext
 from db_context.utils import wrap_untrusted
 from db_context.schema.formatter import format_sql_query_result
+from db_context.schema.json_result import format_sql_query_result_json
 
 # Load environment variables from .env file
 load_dotenv()
@@ -450,24 +451,56 @@ async def get_related_tables(table_name: str, ctx: Context) -> str:
         return f"Error getting related tables: {str(e)}"
 
 @mcp.tool()
-async def run_sql_query(sql: str, ctx: Context, max_rows: int = 100) -> str:
-    """Generic read-only SELECT executor (formatted output).
+async def run_sql_query(
+    sql: str,
+    ctx: Context,
+    max_rows: int = 100,
+    result_format: str = "json",
+) -> str:
+    """Generic read-only SELECT executor.
+
+    result_format:
+      - "json" (default): structured JSON — SQL NULL as null, columns + row arrays
+      - "markdown": human-readable markdown table (NULL token for SQL nulls)
 
     Use: Ad hoc data inspection or metrics not exposed by other tools.
     Compose: Supplement structured metadata tools (e.g. row counts) sparingly.
     Avoid: Rebuilding metadata graphs already available via dedicated tools.
+    Prefer narrow projections and max_rows on large tables.
     """
     db_context: DatabaseContext = ctx.request_context.lifespan_context
-    
+    fmt = (result_format or "json").strip().lower()
+    if fmt not in ("json", "markdown", "md"):
+        return wrap_untrusted(
+            f"Invalid result_format={result_format!r}; use 'json' or 'markdown'."
+        )
+    if fmt == "md":
+        fmt = "markdown"
+
     try:
         result = await db_context.run_sql_query(sql, max_rows=max_rows)
         if not result.get("rows"):
-            # Write or empty read response
             if "message" in result:
-                return wrap_untrusted(result["message"])  # keep consistency
+                # DML / write path message
+                if fmt == "json":
+                    return wrap_untrusted(
+                        format_sql_query_result_json(result, max_rows=max_rows)
+                    )
+                return wrap_untrusted(result["message"])
+            if fmt == "json":
+                return wrap_untrusted(
+                    format_sql_query_result_json(
+                        {"columns": result.get("columns") or [], "rows": [], "row_count": 0},
+                        max_rows=max_rows,
+                    )
+                )
             return wrap_untrusted("Query executed successfully, but returned no rows.")
-        formatted_result = format_sql_query_result(result)
-        return wrap_untrusted(formatted_result)
+
+        if fmt == "json":
+            return wrap_untrusted(
+                format_sql_query_result_json(result, max_rows=max_rows)
+            )
+        return wrap_untrusted(format_sql_query_result(result))
     except PermissionError as e:
         return wrap_untrusted(f"Permission error: {e}")
     except oracledb.Error as e:
