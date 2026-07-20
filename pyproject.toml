@@ -1,6 +1,6 @@
 [project]
 name = "oracle-mcp-server"
-version = "0.1.5"
+version = "0.1.6"
 description = "MCP server for Oracle database schema context retrieval"
 requires-python = ">=3.12"
 dependencies = [
@@ -36,3 +36,4 @@ strict = true
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
