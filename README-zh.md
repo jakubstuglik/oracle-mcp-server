@@ -308,6 +308,50 @@ ORDERS 表定义了哪些约束？
 ORDERS 表与哪些表有关联？
 ```
 
+#### `run_sql_query`
+执行 SQL 查询并返回结果。
+
+**参数**
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `sql` | （必填） | 要执行的 SQL 语句 |
+| `max_rows` | `100` | 最多返回的行数 |
+| `result_format` | `"markdown"` | 输出格式：`"markdown"` 或 `"json"` |
+
+**结果格式**
+
+- **`markdown`（默认）** — 便于阅读的 Markdown 表格。SQL `NULL` 显示为文本标记 `NULL`（与字符串值 `"NULL"` 在外观上相同）。空字符串 `''` 显示为空单元格。
+- **`json`** — 面向智能体 / 程序消费的结构化 JSON。结构示例：
+
+```json
+{
+  "format": "json",
+  "columns": ["ID", "NAME", "STREET"],
+  "rows": [
+    [15093, "Radowo Małe", null],
+    [15490, "Some stop", "ul. Example"]
+  ],
+  "row_count": 2,
+  "max_rows": 100,
+  "truncated_rows": false,
+  "truncated_cells": false
+}
+```
+
+  - SQL `NULL` → JSON `null`（可与 `""` 以及字符串 `"NULL"` 区分）
+  - 每一行是与 `columns` 对齐的数组
+  - 过长单元格可能被截断（`truncated_cells`）；若 `row_count == max_rows`，可能还有更多行（`truncated_rows`）
+
+当 AI 智能体需要可靠的空值语义时，请优先使用 **`result_format="json"`**。在聊天界面中展示表格时可使用 **`markdown`**。
+
+示例：
+```
+请帮我执行：SELECT * FROM EMPLOYEES WHERE DEPARTMENT_ID = 10
+```
+
+**说明**：在只读模式（默认）下，仅允许 SELECT。写操作（INSERT、UPDATE、DELETE）会被阻止。将 `READ_ONLY_MODE="0"` 可允许写操作。
+
 ## 架构
 
 本 MCP 服务器采用三层架构，针对大型 Oracle 数据库进行了优化：

@@ -313,7 +313,42 @@ What tables are related to the ORDERS table?
 ```
 
 #### `run_sql_query`
-Execute a SQL query and return the results in a formatted table.
+Execute a SQL query and return the results.
+
+**Parameters**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `sql` | (required) | SQL statement to run |
+| `max_rows` | `100` | Maximum number of rows to return |
+| `result_format` | `"markdown"` | Output format: `"markdown"` or `"json"` |
+
+**Result formats**
+
+- **`markdown` (default)** — Human-readable Markdown table. SQL `NULL` is rendered as the text token `NULL` (the same display as a string value `"NULL"`). Empty string `''` is an empty cell.
+- **`json`** — Structured JSON for agents and programmatic consumers. Shape:
+
+```json
+{
+  "format": "json",
+  "columns": ["ID", "NAME", "STREET"],
+  "rows": [
+    [15093, "Radowo Małe", null],
+    [15490, "Some stop", "ul. Example"]
+  ],
+  "row_count": 2,
+  "max_rows": 100,
+  "truncated_rows": false,
+  "truncated_cells": false
+}
+```
+
+  - SQL `NULL` → JSON `null` (distinct from `""` and the string `"NULL"`)
+  - Each row is an array aligned with `columns`
+  - Long cell values may be truncated (`truncated_cells`); if `row_count == max_rows`, more rows may exist (`truncated_rows`)
+
+Prefer **`result_format="json"`** when an AI agent needs reliable null/typing semantics. Keep **`markdown`** for human-readable tables in chat UIs.
+
 Example:
 ```
 Can you run this query for me? SELECT * FROM EMPLOYEES WHERE DEPARTMENT_ID = 10
