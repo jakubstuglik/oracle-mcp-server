@@ -379,9 +379,11 @@ def format_sql_query_result(result: Dict[str, Any]) -> str:
     headers = [str(h) for h in result["columns"]]
     rows = result["rows"]
 
-    def _escape(val: Any) -> str:
+    def _escape(val: Any) -> tuple[str, bool]:
+        # Always return (cell_text, was_truncated). Returning "" alone for NULL
+        # used to raise: ValueError: not enough values to unpack (expected 2, got 0).
         if val is None:
-            return ""
+            return "NULL", False
         s = str(val)
         # Normalize whitespace to single spaces to avoid multi-line table injection
         s = s.replace("\r", " ").replace("\n", " ")

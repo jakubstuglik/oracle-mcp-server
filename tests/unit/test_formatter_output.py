@@ -45,3 +45,25 @@ def test_format_sql_query_result_truncation_and_note():
     assert lines[1].startswith("| ---")
     assert "…" in lines[2], "Truncated ellipsis missing in data row"
     assert any(line.startswith("Note: Some values truncated") for line in lines[3:]), "Truncation note missing"
+
+
+def test_format_sql_query_result_null_cells():
+    """SQL NULL (Python None) must not crash unpacking and must render as NULL token."""
+    result = {
+        "columns": ["ID", "NAME", "STREET"],
+        "rows": [
+            {"ID": 1, "NAME": "ALPHA", "STREET": None},
+            {"ID": 2, "NAME": None, "STREET": ""},
+        ],
+    }
+
+    table = format_sql_query_result(result)
+
+    assert "not enough values to unpack" not in table
+    lines = table.splitlines()
+    assert lines[0].startswith("| ID")
+    assert "NULL" in lines[2], f"Expected NULL token for SQL null street:\n{table}"
+    assert "NULL" in lines[3], f"Expected NULL token for SQL null name:\n{table}"
+    # Empty string is distinct from SQL NULL
+    assert "| 2" in lines[3]
+    assert "ALPHA" in lines[2]
